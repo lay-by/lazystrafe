@@ -9,7 +9,7 @@ LazyStrafe is a tap-strafe script for Titanfall 2 players on linux. Once configu
 - root priviledges
 
 ### Procedure
-clone this repo and enter the directory with`git clone https://github.com/lay-by/lazystrafe.git && cs lazystrafe`
+clone this repo and enter the directory with`git clone https://github.com/lay-by/lazystrafe.git && cd lazystrafe`
 
 compile the script with`nim c -d:release lazystrafe.nim`
 
