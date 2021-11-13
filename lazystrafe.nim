@@ -19,8 +19,7 @@ var
     keylabels = @['w', 'a', 's', 'd']
     KBDPATH:string
     fs:Stream
-    STRAFEACTIVE:bool
-    STRAFEBLOCK:bool
+    keystates = newSeq[bool](4)
 #[
     data structure
     timeval : 16 bytes
@@ -113,11 +112,13 @@ while true:
     fs.read(buf)
     if buf.len == 24:
         var event = decode(buf)
-        if event.code == keys[1] or event.code == keys[3]:
-            if event.value == keydown: STRAFEACTIVE = true
-            if event.value == keyup: STRAFEACTIVE = false
-        if event.code == keys[0] or event.code == keys[2]:
-            if event.value == keydown: STRAFEBLOCK = true
-            if event.value == keyup: STRAFEBLOCK = false
-    if STRAFEACTIVE and not STRAFEBLOCK:
+        for i, key in keys:
+            if event.code == key and event.value == keydown: keystates[i] = true
+            if event.code == key and event.value == keyup: keystates[i] = false
+
+    #if a or d are held down
+    if (keystates[1] or keystates[3]) and not ( keystates[0] or keystates[2] ):
         discard execCmd "xdotool key w"
+    #if a or d and w are held down
+    if (keystates[1] or keystates[3]) and keystates[0]:
+        discard execCmd "xte 'keydown w'"
