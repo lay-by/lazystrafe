@@ -1,6 +1,5 @@
 #LazyStrafe, a Titanfall2 tap strafe script for Counter Strike vets who don't want to learn how to tap strafe, but also use linux (so basically just me lol).
 import std/bitops, std/streams, std/strutils, std/os, std/sequtils, osproc
-#Set this line to your keyboard file in /dev/input/by-id/
 const 
     banner = "\e[1;34m\n\n\n@@@        @@@@@@   @@@@@@@@  @@@ @@@   @@@@@@   @@@@@@@  @@@@@@@    @@@@@@   @@@@@@@@  @@@@@@@@\n@@@       @@@@@@@@  @@@@@@@@  @@@ @@@  @@@@@@@   @@@@@@@  @@@@@@@@  @@@@@@@@  @@@@@@@@  @@@@@@@@\n@@!       @@!  @@@       @@!  @@! !@@  !@@         @@!    @@!  @@@  @@!  @@@  @@!       @@!     \n!@!       !@!  @!@      !@!   !@! @!!  !@!         !@!    !@!  @!@  !@!  @!@  !@!       !@!     \n@!!       @!@!@!@!     @!!     !@!@!   !!@@!!      @!!    @!@!!@!   @!@!@!@!  @!!!:!    @!!!:!  \n!!!       !!!@!!!!    !!!       @!!!    !!@!!!     !!!    !!@!@!    !!!@!!!!  !!!!!:    !!!!!:  \n!!:       !!:  !!!   !!:        !!:         !:!    !!:    !!: :!!   !!:  !!!  !!:       !!:     \n :!:      :!:  !:!  :!:         :!:        !:!     :!:    :!:  !:!  :!:  !:!  :!:       :!:     \n :: ::::  ::   :::   :: ::::     ::    :::: ::      ::    ::   :::  ::   :::   ::        :: ::::\n: :: : :   :   : :  : :: : :     :     :: : :       :      :   : :   :   : :   :        : :: :: \n\n\n\e[1;0m"
     keydown = 4096
@@ -16,12 +15,12 @@ except Exception:
 
 
 var
-    dKey:uint16
-    aKey:uint16
+    keys = newSeq[uint16](4)
+    keylabels = @['w', 'a', 's', 'd']
     KBDPATH:string
     fs:Stream
-    APRESSED:bool
-    DPRESSED:bool
+    STRAFEACTIVE:bool
+    STRAFEBLOCK:bool
 #[
     data structure
     timeval : 16 bytes
@@ -43,17 +42,22 @@ proc decode*(a:array[24, uint8]):input_event=
         result.value += a[i]
         if i != 23:
             result.value = rotateLeftBits(result.value, 4)
+
 var createConfig = true
 if fileExists(".lazystrafeconfig"):
     #read config file
     let config:seq[string] = splitLines(readFile(".lazystrafeconfig"))
     #verify config
-    if (config[0].contains("event-kbd") and config[1].parseInt != 0 and config[2].parseInt != 0):
+    var tempkeyflag = true
+    for i, key in keylabels:
+        if config[i+1].parseInt == 0:
+            tempkeyflag = false
+    if (config[0].contains("event-kbd") and tempkeyflag):
         echo "Config Loaded"
         createConfig = false
         KBDPATH = config[0]
-        dKey = uint16(config[1].parseInt())
-        aKey = uint16(config[2].parseInt())
+        for i in 0..<keylabels.len:
+            keys[i] = uint16(config[i+1].parseInt())
         fs = newFileStream(KBDPATH, fmRead)
 
 if createConfig or paramCount() > 0 and paramStr(1).toLower == "config":
@@ -74,32 +78,28 @@ if createConfig or paramCount() > 0 and paramStr(1).toLower == "config":
                 break
             echo "Invalid input"
     
+    #map keys 
     echo "Do not press any keys until prompted to"
-    sleep(1000)
-    echo "Press your A key."
-    while true:
-        var buf: array[24, uint8]    
-        fs.read(buf)
-        if buf.len == 24:
-            var event = decode(buf)
-            if event.value == keyDown:
-                aKey = event.code
-                echo "A key registered: " & $aKey
-                break
-    echo "Release all keys."
-    sleep(1000)
-    echo "Press your D key"
-    while true:
-        var buf: array[24, uint8]    
-        fs.read(buf)
-        if buf.len == 24:
-            var event = decode(buf)
-            if event.value == keydown:
-                dKey = event.code
-                echo "D key registered: " & $dKey
-                break
+    for i, keylabel in keylabels:        
+        sleep(1000)
+        echo "Press your " & $keylabel & " key."
+        while true:
+            var buf: array[24, uint8]    
+            fs.read(buf)
+            if buf.len == 24:
+                var event = decode(buf)
+                if event.value == keyDown:
+                    keys[i] = event.code
+                    echo $keylabel & " key registered."
+                    break
+        echo "Release all keys."
+        sleep(1000)
+        
     
-    var fwrite = KBDPATH & "\n" & $dKey & "\n" & $aKey
+    #save config
+    var fwrite = KBDPATH
+    for key in keys: 
+        fwrite &= "\n" & $key
     writeFile(".lazystrafeconfig", fwrite)
     echo "config setup finished."
     sleep(3000)
@@ -113,13 +113,11 @@ while true:
     fs.read(buf)
     if buf.len == 24:
         var event = decode(buf)
-        if event.code == dKey:
-            if event.value == keydown: DPRESSED = true
-            if event.value == keyup: DPRESSED = false
-        if event.code == aKey:
-            if event.value == keydown: APRESSED = true
-            if event.value == keyup: APRESSED = false
-    if APRESSED or DPRESSED:
+        if event.code == keys[1] or event.code == keys[3]:
+            if event.value == keydown: STRAFEACTIVE = true
+            if event.value == keyup: STRAFEACTIVE = false
+        if event.code == keys[0] or event.code == keys[2]:
+            if event.value == keydown: STRAFEBLOCK = true
+            if event.value == keyup: STRAFEBLOCK = false
+    if STRAFEACTIVE and not STRAFEBLOCK:
         discard execCmd "xdotool key w"
-    
-
