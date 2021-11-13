@@ -36,7 +36,7 @@ type
         code: uint16 #2 bytes
         value: uint32 #4 bytes
 
-proc decode*(a:array[24, uint8]):input_event=
+proc decode(a:array[24, uint8]):input_event=
     result.code = rotateLeftBits(a[18], 4) + a[19]    
     for i in 20..23:
         result.value += a[i]
