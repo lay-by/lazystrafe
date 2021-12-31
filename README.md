@@ -1,6 +1,6 @@
 # Overview
 
-LazyStrafe is a tap-strafe script for Titanfall 2 players on linux. Once configured, simply hold down A or D to airstrafe much faster than the game engine allows with regular strafing. Keyboard input is read directly from /dev/input/ and xte is used to send keystrokes. 
+LazyStrafe is a tap-strafe script for Titanfall 2 players on linux/proton. Once configured, hold down A or D to airstrafe much faster than the game engine allows with regular strafing. Keyboard input is read directly from /dev/input/ and xdotool/xte is used to send keystrokes. 
 
 # Installation
 ### Requirements
@@ -16,4 +16,4 @@ compile the script with`nim c -d:release lazystrafe.nim`
 
 execute as superuser with`sudo ./lazystrafe`
 
-Once compiled, you may want to move the binary to /usr/local/bin/ or a similar bin folder.
+Once compiled, you will likely want to move the compiled binary to a bin folder or add it to your $PATH variable. 
